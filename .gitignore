@@ -1,0 +1,8 @@
+**/__pycache__/
+**/.vscode/
+**/data/cora/cora/
+**/.ipynb_checkpoints/
+*.txt
+*.log
+*.zip
+*.mat
