@@ -7,9 +7,6 @@ from torch_scatter import scatter_add
 
 from message_passing import MessagePassing
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-print("Device: ", device)
-
 class GeoLayer(MessagePassing):
 
     def __init__(self,
@@ -35,6 +32,7 @@ class GeoLayer(MessagePassing):
         self.dropout = dropout
         self.att_type = att_type
         self.agg_type = agg_type
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # GCN weight
         self.gcn_weight = None
@@ -100,7 +98,7 @@ class GeoLayer(MessagePassing):
         edge_index, _ = remove_self_loops(edge_index)
         edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
         # prepare
-        x = torch.mm(x.to(device), self.weight).view(-1, self.heads, self.out_channels)
+        x = torch.mm(x.to(self.device), self.weight).view(-1, self.heads, self.out_channels)
         return self.propagate(edge_index, x=x, num_nodes=x.size(0))
 
     def message(self, x_i, x_j, edge_index, num_nodes):
@@ -117,7 +115,7 @@ class GeoLayer(MessagePassing):
         else:
             # Compute attention coefficients.
             alpha = self.apply_attention(edge_index, num_nodes, x_i, x_j)
-            alpha = softmax(src=alpha, index=edge_index[0].to(device), num_nodes=num_nodes)
+            alpha = softmax(src=alpha, index=edge_index[0].to(self.device), num_nodes=num_nodes)
             # Sample attention coefficients stochastically.
             if self.training and self.dropout > 0:
                 alpha = F.dropout(alpha, p=self.dropout, training=True)

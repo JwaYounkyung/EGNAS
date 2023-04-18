@@ -10,9 +10,6 @@ from gnn import GraphNet
 import warnings
 warnings.filterwarnings('ignore')
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-print("Device: ", device)
-
 def evaluate(output, labels, mask):
     _, indices = torch.max(output, dim=1)
     correct = torch.sum(indices[mask] == labels[mask])
@@ -24,6 +21,7 @@ class GNNModelManager(object):
         
         self.args = args
         self.loss_fn = torch.nn.functional.nll_loss
+        self.device = torch.device("cuda" if self.args.cuda else "cpu")
         
     
     def load_data(self, dataset='Citeseer'):
@@ -61,12 +59,11 @@ class GNNModelManager(object):
         pass
 
     def shuffle_data(self, full_data=True):
-        device = torch.device('cuda' if self.args.cuda else 'cpu')
         if full_data:
             self.data = fix_size_split(self.data, self.data.num_nodes - 1000, 500, 500)
         else:
             self.data = fix_size_split(self.data, 1000, 500, 500)
-        self.data.to(device)
+        self.data.to(self.device)
             
         
     def build_gnn(self, actions, drop_outs):
@@ -84,7 +81,7 @@ class GNNModelManager(object):
 
         # create model
         model = self.build_gnn(actions)
-        model.to(device)
+        model.to(self.device)
 
         # use optimizer
         optimizer = torch.optim.Adam(model.parameters(), lr=self.args.lr, weight_decay=self.args.weight_decay)
@@ -114,7 +111,7 @@ class GNNModelManager(object):
         drop_outs = params[:-2]
         
         gnn_model = self.build_gnn(actions, drop_outs)
-        gnn_model.to(device)
+        gnn_model.to(self.device)
         
         # define optimizer
         optimizer = torch.optim.Adam(gnn_model.parameters(),
@@ -131,8 +128,7 @@ class GNNModelManager(object):
 
         return val_acc, test_acc
         
-    @staticmethod
-    def run_model(model, optimizer, loss_fn, data, epochs, early_stop=5, 
+    def run_model(self, model, optimizer, loss_fn, data, epochs, early_stop=5, 
                   return_best=False, cuda=True, need_early_stop=False, show_info=False):
         dur = []
         begin_time = time.time()
@@ -146,10 +142,12 @@ class GNNModelManager(object):
             
             model.train()
 #             print(data.edge_index.shape, data.x.shape, data.y.shape)
-            logits = model(data.x.to(device), data.edge_index.to(device))
+            data.x, data.y, data.edge_index = data.x.to(self.device), data.y.to(self.device), data.edge_index.to(self.device)
+            data.train_mask, data.val_mask, data.test_mask = data.train_mask.to(self.device), data.val_mask.to(self.device), data.test_mask.to(self.device)
+            logits = model(data.x, data.edge_index)
             logits = F.log_softmax(logits, 1)
             
-            loss = loss_fn(logits[data.train_mask], data.y[data.train_mask].to(device))
+            loss = loss_fn(logits[data.train_mask], data.y[data.train_mask])
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -157,14 +155,14 @@ class GNNModelManager(object):
 
             # evaluate
             model.eval()
-            logits = model(data.x.to(device), data.edge_index.to(device))
+            logits = model(data.x, data.edge_index)
             logits = F.log_softmax(logits, 1)
             
-            train_acc = evaluate(logits.to(device), data.y.to(device), data.train_mask.to(device))
-            val_acc = evaluate(logits.to(device), data.y.to(device), data.val_mask.to(device))
-            test_acc = evaluate(logits.to(device), data.y.to(device), data.test_mask.to(device))
+            train_acc = evaluate(logits, data.y, data.train_mask)
+            val_acc = evaluate(logits, data.y, data.val_mask)
+            test_acc = evaluate(logits, data.y, data.test_mask)
 
-            loss = loss_fn(logits[data.val_mask].to(device), data.y[data.val_mask].to(device))
+            loss = loss_fn(logits[data.val_mask], data.y[data.val_mask])
             val_loss = loss.item()
             if val_loss < min_val_loss:  # and train_loss < min_train_loss
                 min_val_loss = val_loss
@@ -187,8 +185,7 @@ class GNNModelManager(object):
             return model, model_val_acc, model_test_acc
         
 
-    @staticmethod
-    def prepare_data(data, cuda=True):
+    def prepare_data(self, data, cuda=True):
         features = torch.FloatTensor(data.features)
         labels = torch.LongTensor(data.labels)
         mask = torch.ByteTensor(data.train_mask)
@@ -204,8 +201,8 @@ class GNNModelManager(object):
         norm[torch.isinf(norm)] = 0
 
         if cuda:
-            features = features.to(device)
-            labels = labels.to(device)
-            norm = norm.to(device)
+            features = features.to(self.device)
+            labels = labels.to(self.device)
+            norm = norm.to(self.device)
         g.ndata['norm'] = norm.unsqueeze(1)
         return features, g, labels, mask, val_mask, test_mask, n_edges        

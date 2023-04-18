@@ -52,7 +52,8 @@ def register_default_args(parser):
                         help="input feature dropout")
     parser.add_argument("--cuda", type=bool, default=True,
                         help="cuda")
-    
+    parser.add_argument("--gpu", type=int, default=0,
+                        help="gpu number")
     
 #     parser.add_argument('--save_epoch', type=int, default=2)
 #     parser.add_argument('--max_save_num', type=int, default=5)

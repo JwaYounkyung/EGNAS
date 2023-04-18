@@ -8,8 +8,14 @@ import os
 #os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 def main(args):
-    torch.manual_seed(args.random_seed) 
+    if args.cuda and not torch.cuda.is_available():  # cuda is not available
+        args.cuda = False
     
+    torch.manual_seed(args.random_seed)
+    if args.cuda:
+        torch.cuda.set_device(args.gpu)
+        torch.cuda.manual_seed(args.random_seed)
+
     utils.makedirs(args.dataset)  
     
     print(args.super_ratio)
