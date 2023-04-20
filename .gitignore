@@ -1,7 +1,9 @@
 **/__pycache__/
 **/.vscode/
-**/data/cora/cora/
+**/cora/
+**/Cora/
 **/.ipynb_checkpoints/
+**/results/
 *.txt
 *.log
 *.zip

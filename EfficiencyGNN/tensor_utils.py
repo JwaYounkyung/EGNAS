@@ -9,6 +9,16 @@ from datetime import datetime
 import numpy as np
 import torch
 from torch.autograd import Variable
+import random
+
+def set_random_seed(seed_num=1):
+	random.seed(seed_num)
+	np.random.seed(seed_num)
+	torch.manual_seed(seed_num)
+	torch.cuda.manual_seed(seed_num)
+	torch.cuda.manual_seed_all(seed_num)
+	torch.backends.cudnn.deterministic = True # True 연산 처리 속도가 감소될 수 있음
+	torch.backends.cudnn.benchmark = False
 
 
 class keydefaultdict(defaultdict):

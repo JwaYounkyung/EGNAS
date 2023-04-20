@@ -6,19 +6,21 @@ from pyg_gnn_layer import GeoLayer
 
 class GraphNet(torch.nn.Module):
     
-    def __init__(self, layer_nums, actions, num_feat, num_label, drop_outs, multi_label=False, 
-                 batch_normal=True, residual=False, state_num=5):
+    def __init__(self, shared_params, layer_nums, actions, num_feat, num_label, drop_outs, multi_label=False, 
+                 batch_normal=True, residual=False, state_num=5, shared_params_dict=None):
         
         super(GraphNet, self).__init__()     
         
         # args
+        self.shared_params = shared_params
         self.layer_nums = layer_nums     
         self.multi_label = multi_label
         self.num_feat = num_feat
         self.num_label = num_label
         self.dropouts = drop_outs
         self.residual = residual   
-        self.batch_normal = batch_normal 
+        self.batch_normal = batch_normal
+        self.shared_params_dict = shared_params_dict
         
         # layer module
         self.build_model(actions, batch_normal, drop_outs, num_feat, num_label, state_num)
@@ -54,18 +56,54 @@ class GraphNet(torch.nn.Module):
             concat = True
             if i == layer_nums - 1:
                 concat = False
-            if self.batch_normal:
-                self.bns.append(torch.nn.BatchNorm1d(in_channels, momentum=0.5))
-            self.layers.append(
-                GeoLayer(in_channels, out_channels, head_num, concat, dropout=drop_outs[i],
-                         att_type=attention_type, agg_type=aggregator_type, ))
-            self.acts.append(act_map(act))
-            if self.residual:
-                if concat:
-                    self.fcs.append(torch.nn.Linear(in_channels, out_channels * head_num))
+
+            # build layer
+            bns, layers, acts, fcs = None, None, None, None
+            if self.shared_params==False:
+                if self.batch_normal:
+                    bns = torch.nn.BatchNorm1d(in_channels, momentum=0.5)
+                layers = GeoLayer(in_channels, out_channels, head_num, concat, dropout=drop_outs[i],
+                                  att_type=attention_type, agg_type=aggregator_type, )
+                acts = act_map(act)
+                if self.residual:
+                    if concat:
+                        fcs = torch.nn.Linear(in_channels, out_channels * head_num)
+                    else:
+                        fcs = torch.nn.Linear(in_channels, out_channels)
+            else:
+                key = "%s_%s_%s_%d_%d" % (attention_type, aggregator_type, act, head_num, out_channels)
+                # load parameters from parents
+                if self.shared_params_dict!=None and key in self.shared_params_dict:
+                    if self.batch_normal:
+                        bns = self.shared_params_dict[key][0]
+                    layers = self.shared_params_dict[key][1]
+                    acts = self.shared_params_dict[key][2]
+                    if self.residual:
+                        fcs = self.shared_params_dict[key][3]
+                # generate and save parameters 
                 else:
-                    self.fcs.append(torch.nn.Linear(in_channels, out_channels))
+                    if self.batch_normal:
+                        bns = torch.nn.BatchNorm1d(in_channels, momentum=0.5)
+                    layers = GeoLayer(in_channels, out_channels, head_num, concat, dropout=drop_outs[i],
+                                      att_type=attention_type, agg_type=aggregator_type, )
+                    acts = act_map(act)
+                    if self.residual:
+                        if concat:
+                            fcs = torch.nn.Linear(in_channels, out_channels * head_num)
+                        else:
+                            fcs = torch.nn.Linear(in_channels, out_channels)
+                    if i < layer_nums - 1:
+                        print('save shared params: %s' % key)
+                        self.shared_params_dict[key] = [bns, layers, acts, fcs]
             
+            # bns, layers, acts, fcs append
+            if self.batch_normal:
+                self.bns.append(bns)
+            self.layers.append(layers)
+            self.acts.append(acts)
+            if self.residual:
+                self.fcs.append(fcs)
+
     def forward(self, x, edge_index_all):
         output = x
         if self.residual:

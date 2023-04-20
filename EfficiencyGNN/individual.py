@@ -2,11 +2,12 @@ import numpy as np
 
 class Individual(object):
     
-    def __init__(self, args, net_genes, param_genes):
+    def __init__(self, args, net_genes, param_genes, shared_params_dict=dict()):
         
         self.args = args
         self.net_genes = net_genes
         self.param_genes = param_genes
+        self.shared_params_dict = shared_params_dict
 
         
     def get_net_genes(self):
@@ -17,9 +18,11 @@ class Individual(object):
     
     def cal_fitness(self, gnn_manager):
         # run gnn to get the classification accuracy as fitness
-        val_acc, test_acc = gnn_manager.train(self.net_genes, self.param_genes)
+        # update shared_params_dict (mutation 때문에 정보가 바뀌였을 수 있다)
+        val_acc, test_acc, shared_params_dict = gnn_manager.train(self.net_genes, self.param_genes, self.shared_params_dict)
         self.fitness = val_acc
         self.test_acc = test_acc
+        self.shared_params_dict = shared_params_dict
         
     def get_fitness(self):
         return self.fitness

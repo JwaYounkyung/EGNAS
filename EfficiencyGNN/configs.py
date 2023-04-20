@@ -24,17 +24,17 @@ def register_default_args(parser):
                         help='number of evolving generations')
     parser.add_argument('--num_parents', type=int, default=10,
                         help='number of parents for crossover')
-    parser.add_argument('--num_parents_param', type=int, default=4,
+    parser.add_argument('--num_parents_param', type=int, default=0,
                         help='number of parents for crossover')
-    parser.add_argument('--num_offsprings', type=int, default=4,
+    parser.add_argument('--num_offsprings', type=int, default=4, # number of parents pair for crossover
                         help='number of offsprings')
-    parser.add_argument('--num_offsprings_param', type=int, default=2,
+    parser.add_argument('--num_offsprings_param', type=int, default=0,
                         help='number of offsprings')
     parser.add_argument('--mutate_prob', type=float, default=0.02,
                         help='mutation probability')
-    parser.add_argument('--num_individuals_param', type=int, default=4,
+    parser.add_argument('--num_individuals_param', type=int, default=0,
                         help='the population size')   
-    parser.add_argument('--num_generations_param', type=int, default=5,
+    parser.add_argument('--num_generations_param', type=int, default=0,
                         help='number of evolving generations') 
     parser.add_argument('--super_ratio', type=float, default=0.6,
                         help=' probability')
@@ -55,6 +55,9 @@ def register_default_args(parser):
     parser.add_argument("--gpu", type=int, default=0,
                         help="gpu number")
     
+    # parameter sharing
+    parser.add_argument("--shared_params", type=bool, default=True,
+                        help="whether to share parameters")
 #     parser.add_argument('--save_epoch', type=int, default=2)
 #     parser.add_argument('--max_save_num', type=int, default=5)
 #     parser.add_argument("--residual", action="store_false",
