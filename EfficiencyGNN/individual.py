@@ -16,6 +16,9 @@ class Individual(object):
     def get_param_genes(self):
         return self.param_genes
     
+    def get_shared_params_dict(self):
+        return self.shared_params_dict
+    
     def cal_fitness(self, gnn_manager):
         # run gnn to get the classification accuracy as fitness
         # update shared_params_dict (mutation 때문에 정보가 바뀌였을 수 있다)

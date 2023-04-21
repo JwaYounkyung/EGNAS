@@ -62,7 +62,7 @@ class HybridSearchSpace(object):
     def get_one_net_gene(self):
         "randomly sample a gene for mutation from the architecture space"
         action_type_list = self.get_action_type_list()
-        gene_mutate_index = sample(range(len(action_type_list)), 1)[0]
+        gene_mutate_index = sample(range(5, len(action_type_list)), 1)[0] # start at second layer
         gene_mutate_candidates = self.net_space[action_type_list[gene_mutate_index]]
         gene_mutate_to = sample(gene_mutate_candidates, 1)[0]
         

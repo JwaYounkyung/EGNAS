@@ -5,6 +5,7 @@ import configs
 import tensor_utils as utils
 from population import Population
 import os
+import time
 #os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 def main(args):
@@ -19,8 +20,10 @@ def main(args):
     
     print(args.super_ratio)
     
+    begin_time = time.time()
     pop = Population(args)
     pop.evolve_net()
+    print('entire experiment time: %.2f min' %((time.time() - begin_time)/60))
 
 #     # run on single model
 #     num_epochs = 200
