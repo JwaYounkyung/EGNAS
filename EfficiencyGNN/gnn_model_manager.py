@@ -66,12 +66,12 @@ class GNNModelManager(object):
         self.data.to(self.device)
             
         
-    def build_gnn(self, actions, drop_outs, shared_params_dict=None):
+    def build_gnn(self, actions, drop_outs):
         
-        model = GraphNet(self.args.shared_params, self.args.num_gnn_layers,
+        model = GraphNet(self.args, self.args.num_gnn_layers,
                          actions, self.args.in_feats, self.args.num_class, 
                          drop_outs=drop_outs, multi_label=False,
-                         batch_normal=False, residual=False, shared_params_dict=shared_params_dict)
+                         batch_normal=False, residual=False)
         return model
         
     # train from scratch
@@ -100,7 +100,7 @@ class GNNModelManager(object):
         return val_acc, test_acc
         
     # train from scratch
-    def train(self, actions=None, params=None, shared_params_dict=None):
+    def train(self, actions=None, params=None):
         # change the last gnn dimension to num_class
         actions[-1] = self.args.num_class
         print('==================================\ncurrent training actions={}, params={}'.format(actions, params))
@@ -110,7 +110,7 @@ class GNNModelManager(object):
         weight_decay = params[-1]
         drop_outs = params[:-2]
         
-        gnn_model = self.build_gnn(actions, drop_outs, shared_params_dict)
+        gnn_model = self.build_gnn(actions, drop_outs)
         gnn_model.to(self.device)
         
         # define optimizer
@@ -126,7 +126,7 @@ class GNNModelManager(object):
                                         self.args.epochs,
                                         show_info=False)
 
-        return val_acc, test_acc, model.shared_params_dict
+        return val_acc, test_acc
         
     def run_model(self, model, optimizer, loss_fn, data, epochs, early_stop=5, 
                   return_best=False, cuda=True, need_early_stop=False, show_info=False):

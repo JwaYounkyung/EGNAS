@@ -6,13 +6,12 @@ from pyg_gnn_layer import GeoLayer
 
 class GraphNet(torch.nn.Module):
     
-    def __init__(self, shared_params, layer_nums, actions, num_feat, num_label, drop_outs, multi_label=False, 
-                 batch_normal=True, residual=False, state_num=5, shared_params_dict=None):
+    def __init__(self, args, layer_nums, actions, num_feat, num_label, drop_outs, multi_label=False, 
+                 batch_normal=True, residual=False, state_num=5):
         
         super(GraphNet, self).__init__()     
         
-        # args
-        self.shared_params = shared_params
+        self.args = args
         self.layer_nums = layer_nums     
         self.multi_label = multi_label
         self.num_feat = num_feat
@@ -20,7 +19,6 @@ class GraphNet(torch.nn.Module):
         self.dropouts = drop_outs
         self.residual = residual   
         self.batch_normal = batch_normal
-        self.shared_params_dict = shared_params_dict
         
         # layer module
         self.build_model(actions, batch_normal, drop_outs, num_feat, num_label, state_num)
@@ -59,7 +57,7 @@ class GraphNet(torch.nn.Module):
 
             # build layer
             bns, layers, acts, fcs = None, None, None, None
-            if self.shared_params==False:
+            if self.args.shared_params==False:
                 if self.batch_normal:
                     bns = torch.nn.BatchNorm1d(in_channels, momentum=0.5)
                 layers = GeoLayer(in_channels, out_channels, head_num, concat, dropout=drop_outs[i],
@@ -71,15 +69,16 @@ class GraphNet(torch.nn.Module):
                     else:
                         fcs = torch.nn.Linear(in_channels, out_channels)
             else:
-                key = "%s_%s_%s_%d_%d" % (attention_type, aggregator_type, act, head_num, out_channels)
+                key = "%d_%d_%d_%d_%s_%s_%s" % (i, in_channels, out_channels, head_num, concat, attention_type, aggregator_type) # GraphNAS
                 # load parameters from parents
-                if self.shared_params_dict!=None and key in self.shared_params_dict:
+                if self.args.shared_params_dict!=None and key in self.args.shared_params_dict:
+                    print('load shared params: %s' % key)
                     if self.batch_normal:
-                        bns = self.shared_params_dict[key][0]
-                    layers = self.shared_params_dict[key][1]
-                    acts = self.shared_params_dict[key][2]
+                        bns = self.args.shared_params_dict[key][0]
+                    layers = self.args.shared_params_dict[key][1]
+                    acts = self.args.shared_params_dict[key][2]
                     if self.residual:
-                        fcs = self.shared_params_dict[key][3]
+                        fcs = self.args.shared_params_dict[key][3]
                 # generate and save parameters 
                 else:
                     if self.batch_normal:
@@ -92,9 +91,8 @@ class GraphNet(torch.nn.Module):
                             fcs = torch.nn.Linear(in_channels, out_channels * head_num)
                         else:
                             fcs = torch.nn.Linear(in_channels, out_channels)
-                    if i < layer_nums - 1:
-                        print('save shared params: %s' % key)
-                        self.shared_params_dict[key] = [bns, layers, acts, fcs]
+                    print('save shared params: %s' % key)
+                    self.args.shared_params_dict[key] = [bns, layers, acts, fcs]
             
             # bns, layers, acts, fcs append
             if self.batch_normal:

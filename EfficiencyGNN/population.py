@@ -142,27 +142,18 @@ class Population(object):
             parent_gene_i = parents[i].get_net_genes()
             parent_gene_j = parents[j].get_net_genes()
             # select a random crossover point
-            # point_index = parent_gene_j.index(sample(parent_gene_j, 1)[0]) # possible 0
-            point_index = random.randint(5,len(parent_gene_i)-1) # start at second layer
+            point_index = parent_gene_j.index(sample(parent_gene_j, 1)[0]) # possible 0
             
             offspring_gene_i = parent_gene_i[:point_index]
             offspring_gene_i.extend(parent_gene_j[point_index:])
             offspring_gene_j = parent_gene_j[:point_index]
             offspring_gene_j.extend(parent_gene_i[point_index:])
             
-            # shared parameter crossover
-            parent_params_dict_i = parents[i].get_shared_params_dict()
-            parent_params_dict_j = parents[j].get_shared_params_dict()
-
-            offspring_params_dict_i = copy.deepcopy(parent_params_dict_j)
-            offspring_params_dict_j = copy.deepcopy(parent_params_dict_i)
-
             # create offspring individuals
-            # Individual 뒤에 shared_param 추가
             offspring_i = Individual(self.args, offspring_gene_i, 
-                                     parents[i].get_param_genes(), offspring_params_dict_i)
+                                     parents[i].get_param_genes())
             offspring_j = Individual(self.args, offspring_gene_j, 
-                                     parents[j].get_param_genes(), offspring_params_dict_j)
+                                     parents[j].get_param_genes())
             
             offsprings.append([offspring_i, offspring_j])
             
