@@ -343,20 +343,20 @@ class Population(object):
             start_time = time.time()
             # GNN hyper parameter evolution
             print('===================GNN hyper parameter evolution====================')
-            initl_param_individual = copy.deepcopy(self.struct_individuals)
-            self.init_param_population(initl_param_individual)
+            # initl_param_individual = copy.deepcopy(self.struct_individuals) # OOM 원인
+            # self.init_param_population(initl_param_individual)
 
-            for i in range(self.args.num_generations_param):
-                param_parents = self.parent_selection_param()            
-                param_offsprings = self.crossover_param(param_parents)
-                self.mutation_param(param_offsprings)
-                param_survivors = self.cal_fitness_offspring_param(param_offsprings)
-                self.update_population_param(param_survivors) # update the population      
+            # for i in range(self.args.num_generations_param):
+            #     param_parents = self.parent_selection_param()            
+            #     param_offsprings = self.crossover_param(param_parents)
+            #     self.mutation_param(param_offsprings)
+            #     param_survivors = self.cal_fitness_offspring_param(param_offsprings)
+            #     self.update_population_param(param_survivors) # update the population      
             
             # update the structure population with the best hyper-parameter
             print('##################update structure population##################')
-            out_index = self.find_least_fittest(self.super_population)
-            self.struct_individuals = self.super_population[out_index].get_population()
+            # out_index = self.find_least_fittest(self.super_population)
+            # self.struct_individuals = self.super_population[out_index].get_population()
             
             # GNN structure evolution
             print('--------------------GNN structure evolution-------------------------')

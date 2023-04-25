@@ -6,6 +6,7 @@ import torch.nn.functional as F
 import torch_geometric.transforms as T
 from torch_geometric.datasets import Planetoid
 from gnn import GraphNet
+import gc
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -130,6 +131,9 @@ class GNNModelManager(object):
         
     def run_model(self, model, optimizer, loss_fn, data, epochs, early_stop=5, 
                   return_best=False, cuda=True, need_early_stop=False, show_info=False):
+        torch.cuda.empty_cache()
+        gc.collect()
+        
         dur = []
         begin_time = time.time()
         best_performance = 0
