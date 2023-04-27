@@ -34,7 +34,7 @@ class Population(object):
             net_genes = self.hybrid_search_space.get_net_instance()
 #             param_genes = self.hybrid_search_space.get_param_instance()
             param_genes = [self.args.in_drop, self.args.in_drop, self.args.lr, self.args.weight_decay]
-            instance = Individual(self.args, net_genes, param_genes)
+            instance = Individual(net_genes, param_genes)
             struct_individuals.append(instance)
         
         self.struct_individuals = struct_individuals
@@ -66,7 +66,7 @@ class Population(object):
 #         param = init_individuals.get_param_genes()
         super_population = []
         
-        init_pop = Super_Individual(self.args, init_individuals, self.params_individuals[0])
+        init_pop = Super_Individual(self.args.num_individuals, self.args.super_ratio, init_individuals, self.params_individuals[0])
         init_pop.cal_superfitness()
         super_population.append(init_pop)
         for i in range(self.args.num_individuals_param-1):
@@ -76,7 +76,7 @@ class Population(object):
             for i in range(self.args.num_individuals): 
                 individuals[i].param_genes = param_genes
                 individuals[i].cal_fitness(self.gnn_manager)
-            new_pop = Super_Individual(self.args, individuals, param_genes)
+            new_pop = Super_Individual(self.args.num_individuals, self.args.super_ratio, individuals, param_genes)
             new_pop.cal_superfitness()
             super_population.append(new_pop)
             
@@ -150,9 +150,9 @@ class Population(object):
             offspring_gene_j.extend(parent_gene_i[point_index:])
             
             # create offspring individuals
-            offspring_i = Individual(self.args, offspring_gene_i, 
+            offspring_i = Individual(offspring_gene_i, 
                                      parents[i].get_param_genes())
-            offspring_j = Individual(self.args, offspring_gene_j, 
+            offspring_j = Individual(offspring_gene_j, 
                                      parents[j].get_param_genes())
             
             offsprings.append([offspring_i, offspring_j])
@@ -343,20 +343,20 @@ class Population(object):
             start_time = time.time()
             # GNN hyper parameter evolution
             print('===================GNN hyper parameter evolution====================')
-            # initl_param_individual = copy.deepcopy(self.struct_individuals) # OOM 원인
-            # self.init_param_population(initl_param_individual)
+            initl_param_individual = copy.deepcopy(self.struct_individuals)
+            self.init_param_population(initl_param_individual)
 
-            # for i in range(self.args.num_generations_param):
-            #     param_parents = self.parent_selection_param()            
-            #     param_offsprings = self.crossover_param(param_parents)
-            #     self.mutation_param(param_offsprings)
-            #     param_survivors = self.cal_fitness_offspring_param(param_offsprings)
-            #     self.update_population_param(param_survivors) # update the population      
+            for i in range(self.args.num_generations_param):
+                param_parents = self.parent_selection_param()            
+                param_offsprings = self.crossover_param(param_parents)
+                self.mutation_param(param_offsprings)
+                param_survivors = self.cal_fitness_offspring_param(param_offsprings)
+                self.update_population_param(param_survivors) # update the population      
             
             # update the structure population with the best hyper-parameter
             print('##################update structure population##################')
-            # out_index = self.find_least_fittest(self.super_population)
-            # self.struct_individuals = self.super_population[out_index].get_population()
+            out_index = self.find_least_fittest(self.super_population)
+            self.struct_individuals = self.super_population[out_index].get_population()
             
             # GNN structure evolution
             print('--------------------GNN structure evolution-------------------------')

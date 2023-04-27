@@ -2,9 +2,10 @@ import numpy as np
 
 class Super_Individual(object):
     
-    def __init__(self, args, population, param_genes):
+    def __init__(self, num_individuals, super_ratio, population, param_genes):
         
-        self.args = args
+        self.num_individuals = num_individuals
+        self.super_ratio = super_ratio
         self.population = population
         self.param_genes = param_genes
 
@@ -27,8 +28,8 @@ class Super_Individual(object):
                 best_fitness = elem.get_fitness()
             average_fitness += elem.get_fitness()
         
-        average_fitness = average_fitness / self.args.num_individuals
-        final_fitness = self.args.super_ratio * best_fitness + (1-self.args.super_ratio) * average_fitness
+        average_fitness = average_fitness / self.num_individuals
+        final_fitness = self.super_ratio * best_fitness + (1-self.super_ratio) * average_fitness
         
         self.fitness = final_fitness
     

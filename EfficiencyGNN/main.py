@@ -32,4 +32,5 @@ def main(args):
     
 if __name__ == "__main__":
     args = configs.build_args('GeneticGNN')
+    print(args)
     main(args)

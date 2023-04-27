@@ -2,9 +2,7 @@ import numpy as np
 
 class Individual(object):
     
-    def __init__(self, args, net_genes, param_genes):
-        
-        self.args = args
+    def __init__(self, net_genes, param_genes):
         self.net_genes = net_genes
         self.param_genes = param_genes
         

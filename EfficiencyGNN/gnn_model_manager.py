@@ -28,7 +28,7 @@ class GNNModelManager(object):
     def load_data(self, dataset='Citeseer'):
         
         path = osp.join(osp.dirname(osp.realpath(__file__)), '..', 'data', dataset)
-        dataset = Planetoid(path, dataset)#, T.NormalizeFeatures())
+        dataset = Planetoid(path, dataset, split='public', transform=T.NormalizeFeatures())
         data = dataset[0]
         
 #         print(np.sum(np.array(data.val_mask), 0))
