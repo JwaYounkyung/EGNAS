@@ -19,7 +19,6 @@ def main(args):
     utils.makedirs(args.dataset)  
     
     begin_time = time.time()
-    args.shared_params_dict = dict()
     pop = Population(args)
     pop.evolve_net()
     print('entire experiment time: %.2f min' %((time.time() - begin_time)/60))

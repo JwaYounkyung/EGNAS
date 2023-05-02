@@ -33,13 +33,20 @@ class Population(object):
         for i in range(self.args.num_individuals):
             net_genes = self.hybrid_search_space.get_net_instance()
 #             param_genes = self.hybrid_search_space.get_param_instance()
-            param_genes = [self.args.in_drop, self.args.in_drop, self.args.lr, self.args.weight_decay]
+            if self.args.num_gnn_layers == 2:
+                param_genes = [self.args.in_drop, self.args.in_drop, self.args.lr, self.args.weight_decay]
+            elif self.args.num_gnn_layers == 3:
+                param_genes = [self.args.in_drop, self.args.in_drop, self.args.in_drop, self.args.lr, self.args.weight_decay]
+
             instance = Individual(net_genes, param_genes)
             struct_individuals.append(instance)
         
         self.struct_individuals = struct_individuals
 
-        param_genes = [self.args.in_drop, self.args.in_drop, self.args.lr, self.args.weight_decay]
+        if self.args.num_gnn_layers == 2:
+            param_genes = [self.args.in_drop, self.args.in_drop, self.args.lr, self.args.weight_decay]
+        elif self.args.num_gnn_layers == 3:
+            param_genes = [self.args.in_drop, self.args.in_drop, self.args.in_drop, self.args.lr, self.args.weight_decay]
         params_individuals = [param_genes]
         for j in range(self.args.num_individuals_param-1):
             param_genes = self.hybrid_search_space.get_param_instance()
@@ -149,11 +156,36 @@ class Population(object):
             offspring_gene_j = parent_gene_j[:point_index]
             offspring_gene_j.extend(parent_gene_i[point_index:])
             
+            # partial parameter sharing
+            shared_params_i = dict()
+            shared_params_j = dict()
+            parent_params_i = parents[i].get_ind_params()
+            parent_params_j = parents[j].get_ind_params()
+
+            # two parent
+            if point_index == 0:
+                shared_params_i = copy.deepcopy(parent_params_i)
+                shared_params_j = copy.deepcopy(parent_params_j)
+            # middle point
+            elif point_index == 5:
+                shared_params_i[0] = parent_params_i[0][:]
+                shared_params_i[1] = parent_params_j[1][:]
+
+                shared_params_j[0] = parent_params_j[0][:]
+                shared_params_j[1] = parent_params_i[1][:]
+            # one parent
+            elif 0 < point_index < 5:
+                shared_params_i[0] = parent_params_i[0][:]
+                shared_params_j[0] = parent_params_j[0][:]
+            else:
+                shared_params_i[1] = parent_params_i[1][:]
+                shared_params_j[1] = parent_params_j[1][:]
+
             # create offspring individuals
             offspring_i = Individual(offspring_gene_i, 
-                                     parents[i].get_param_genes())
+                                     parents[i].get_param_genes(), shared_params_i)
             offspring_j = Individual(offspring_gene_j, 
-                                     parents[j].get_param_genes())
+                                     parents[j].get_param_genes(), shared_params_j)
             
             offsprings.append([offspring_i, offspring_j])
             
