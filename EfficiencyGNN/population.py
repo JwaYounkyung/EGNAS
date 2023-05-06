@@ -155,31 +155,33 @@ class Population(object):
             offspring_gene_i.extend(parent_gene_j[point_index:])
             offspring_gene_j = parent_gene_j[:point_index]
             offspring_gene_j.extend(parent_gene_i[point_index:])
-            
-            # partial parameter sharing
+
             shared_params_i = dict()
-            shared_params_j = dict()
-            parent_params_i = parents[i].get_ind_params()
-            parent_params_j = parents[j].get_ind_params()
+            shared_params_j = dict()     
 
-            # two parent
-            if point_index == 0:
-                shared_params_i = copy.deepcopy(parent_params_i)
-                shared_params_j = copy.deepcopy(parent_params_j)
-            # middle point
-            elif point_index == 5:
-                shared_params_i[0] = parent_params_i[0][:]
-                shared_params_i[1] = parent_params_j[1][:]
+            if self.args.shared_params:
+                # partial parameter sharing
+                parent_params_i = parents[i].get_ind_params()
+                parent_params_j = parents[j].get_ind_params()
 
-                shared_params_j[0] = parent_params_j[0][:]
-                shared_params_j[1] = parent_params_i[1][:]
-            # one parent
-            elif 0 < point_index < 5:
-                shared_params_i[0] = parent_params_i[0][:]
-                shared_params_j[0] = parent_params_j[0][:]
-            else:
-                shared_params_i[1] = parent_params_i[1][:]
-                shared_params_j[1] = parent_params_j[1][:]
+                # two parent
+                if point_index == 0:
+                    shared_params_i = copy.deepcopy(parent_params_i)
+                    shared_params_j = copy.deepcopy(parent_params_j)
+                # middle point
+                elif point_index == 5:
+                    shared_params_i[0] = parent_params_i[0][:]
+                    shared_params_i[1] = parent_params_j[1][:]
+
+                    shared_params_j[0] = parent_params_j[0][:]
+                    shared_params_j[1] = parent_params_i[1][:]
+                # one parent
+                elif 0 < point_index < 5:
+                    shared_params_i[0] = parent_params_i[0][:]
+                    shared_params_j[0] = parent_params_j[0][:]
+                else:
+                    shared_params_i[1] = parent_params_i[1][:]
+                    shared_params_j[1] = parent_params_j[1][:]
 
             # create offspring individuals
             offspring_i = Individual(offspring_gene_i, 
@@ -312,6 +314,31 @@ class Population(object):
                 out_index = self.find_least_fittest(self.struct_individuals)
                 self.struct_individuals[out_index] = elem
 
+    def environmental_selection_struct(self, offsprings):
+        """select individuals for next generation"""
+        # calculate fitness for offsprings
+        all_offsprings = []
+        for pair in offsprings:
+            offspring_1 = pair[0]
+            offspring_2 = pair[1]
+            offspring_1.cal_fitness(self.gnn_manager)
+            offspring_2.cal_fitness(self.gnn_manager)
+            all_offsprings.extend([offspring_1, offspring_2])
+
+        update_population = all_offsprings + self.struct_individuals
+
+        # binary tournament selection
+        survivors = []
+        for i in range(self.args.num_individuals):
+            index_1 = np.random.randint(0, len(update_population), 1)[0]
+            index_2 = np.random.randint(0, len(update_population), 1)[0]
+            if update_population[index_1].get_fitness() > update_population[index_2].get_fitness():
+                survivors.append(update_population[index_1])
+            else:
+                survivors.append(update_population[index_2])
+        
+        self.struct_individuals = survivors
+
     def compare_action(self, a1, a2):
         for i in range(len(a1)):
             if a1[i] != a2[i]:
@@ -341,7 +368,7 @@ class Population(object):
         
         best_individual = self.struct_individuals[0]
         for elem_index, elem in enumerate(self.struct_individuals):
-            if best_individual.get_fitness() < elem.get_fitness():
+            if best_individual.get_test_acc() < elem.get_test_acc():
                 best_individual = elem
             print('struct space: {}, param space: {}, validate_acc={}, test_acc={}'.format(
                                 elem.get_net_genes(), 

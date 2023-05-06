@@ -58,14 +58,6 @@ class GNNModelManager(object):
 
     def save_param(self, model, update_all=False):
         pass
-
-    def shuffle_data(self, full_data=True):
-        if full_data:
-            self.data = fix_size_split(self.data, self.data.num_nodes - 1000, 500, 500)
-        else:
-            self.data = fix_size_split(self.data, 1000, 500, 500)
-        self.data.to(self.device)
-            
         
     def build_gnn(self, actions, drop_outs, shared_params):
         
@@ -74,32 +66,7 @@ class GNNModelManager(object):
                          drop_outs=drop_outs, multi_label=False,
                          batch_normal=False, residual=False)
         return model
-        
-    # train from scratch
-    def evaluate(self, actions=None, format="two"):
-        actions = process_action(actions, format, self.args)
-        print("train action:", actions)
-
-        # create model
-        model = self.build_gnn(actions)
-        model.to(self.device)
-
-        # use optimizer
-        optimizer = torch.optim.Adam(model.parameters(), lr=self.args.lr, weight_decay=self.args.weight_decay)
-        try:
-            model, val_acc, test_acc = self.run_model(model, optimizer, self.loss_fn, self.data, self.epochs,
-                                                      cuda=self.args.cuda, return_best=True,
-                                                      half_stop_score=max(self.reward_manager.get_top_average() * 0.7,
-                                                                          0.4))
-        except RuntimeError as e:
-            if "cuda" in str(e) or "CUDA" in str(e):
-                print(e)
-                val_acc = 0
-                test_acc = 0
-            else:
-                raise e
-        return val_acc, test_acc
-        
+   
     # train from scratch
     def train(self, actions, params, shared_params):
         # change the last gnn dimension to num_class
@@ -125,6 +92,7 @@ class GNNModelManager(object):
                                         self.loss_fn, 
                                         self.data, 
                                         self.args.epochs,
+                                        return_best=True,
                                         show_info=False)
 
         return val_acc, test_acc, gnn_model.shared_params
@@ -136,7 +104,7 @@ class GNNModelManager(object):
         
         dur = []
         begin_time = time.time()
-        best_performance = 0
+        best_performance, best_test = 0, 0
         min_val_loss = float("inf")
         min_train_loss = float("inf")
         model_val_acc = 0
@@ -173,8 +141,11 @@ class GNNModelManager(object):
                 min_train_loss = train_loss
                 model_val_acc = val_acc
                 model_test_acc = test_acc
-                if test_acc > best_performance:
-                    best_performance = test_acc
+                # if test_acc > best_performance:
+                #     best_performance = test_acc
+                if val_acc >= best_performance:
+                    best_performance = val_acc
+                    best_test = test_acc
             if show_info:
                 time_used = time.time() - begin_time
                 print(
@@ -183,29 +154,6 @@ class GNNModelManager(object):
 
         print("val_score:{:.4f}, test_score:{:.4f}, consumed_time:{:.2f}".format(model_val_acc, model_test_acc, time.time() - begin_time), '\n')
         if return_best:
-            return model, model_val_acc, best_performance
+            return model, best_performance, best_test
         else:
             return model, model_val_acc, model_test_acc
-        
-
-    def prepare_data(self, data, cuda=True):
-        features = torch.FloatTensor(data.features)
-        labels = torch.LongTensor(data.labels)
-        mask = torch.ByteTensor(data.train_mask)
-        test_mask = torch.ByteTensor(data.test_mask)
-        val_mask = torch.ByteTensor(data.val_mask)
-        n_edges = data.graph.number_of_edges()
-        # create DGL graph
-        g = DGLGraph(data.graph)
-        # add self loop
-        g.add_edges(g.nodes(), g.nodes())
-        degs = g.in_degrees().float()
-        norm = torch.pow(degs, -0.5)
-        norm[torch.isinf(norm)] = 0
-
-        if cuda:
-            features = features.to(self.device)
-            labels = labels.to(self.device)
-            norm = norm.to(self.device)
-        g.ndata['norm'] = norm.unsqueeze(1)
-        return features, g, labels, mask, val_mask, test_mask, n_edges        
