@@ -4,6 +4,7 @@ cd "EfficiencyGNN/"
 exp_name="EfficiencyGNN_woHP_PStrial5"
 
 python -m main \
+    --dataset='CiteSeer' \
     --num_individuals=20 \
     --epochs=200 \
     --shared_params \

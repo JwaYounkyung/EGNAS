@@ -1,7 +1,7 @@
 #!/bin/sh
 cd "EfficiencyGNN/" 
 
-exp_name="EfficiencyGNN_PStrial5"
+exp_name="EfficiencyGNN_CEtrial1"
 
 python -m main \
     --num_individuals=20 \
@@ -12,5 +12,6 @@ python -m main \
     --num_generations_param=5 \
     --num_parents_param=4 \
     --num_offsprings_param=2 \
+    --mutate_prob=0.2 \
     --gpu=1 \
     2>&1 | tee ${exp_name}.log

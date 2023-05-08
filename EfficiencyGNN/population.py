@@ -96,11 +96,16 @@ class Population(object):
         self.gnn_manager.train(actions)
         
         
-    def cal_fitness(self):
+    def cal_fitness(self, individuals=None):
         """calculate fitness scores of all individuals,
           e.g., the classification accuracy from GNN"""
-        for individual in self.struct_individuals:
+        if individuals is None:
+            individuals = self.struct_individuals
+
+        for individual in individuals:
             individual.cal_fitness(self.gnn_manager)
+        
+        return individuals
             
     def parent_selection(self):
         "select k individuals by fitness probability"
@@ -229,8 +234,103 @@ class Population(object):
             
             offsprings.append([offspring_i, offspring_j])
         return offsprings  
+
+    def crossover_net_single(self, parents, i, j):
+        parent_gene_i = parents[i].get_net_genes()
+        parent_gene_j = parents[j].get_net_genes()
+        # select a random crossover point
+        point_index = parent_gene_j.index(sample(parent_gene_j, 1)[0]) # possible 0
         
-    
+        offspring_gene_i = parent_gene_i[:point_index]
+        offspring_gene_i.extend(parent_gene_j[point_index:])
+        offspring_gene_j = parent_gene_j[:point_index]
+        offspring_gene_j.extend(parent_gene_i[point_index:])
+
+        shared_params_i = dict()
+        shared_params_j = dict()
+        if self.args.shared_params:
+            # partial parameter sharing
+            parent_params_i = parents[i].get_ind_params()
+            parent_params_j = parents[j].get_ind_params()
+
+            # two parent 
+            ## edge point
+            if point_index == 0:
+                shared_params_i = copy.deepcopy(parent_params_i)
+                shared_params_j = copy.deepcopy(parent_params_j)
+            ## middle point
+            elif point_index == 5:
+                shared_params_i[0] = parent_params_i[0][:]
+                shared_params_i[1] = parent_params_j[1][:]
+
+                shared_params_j[0] = parent_params_j[0][:]
+                shared_params_j[1] = parent_params_i[1][:]
+            # one parent
+            elif 0 < point_index < 5:
+                shared_params_i[0] = parent_params_i[0][:]
+                shared_params_j[0] = parent_params_j[0][:]
+            else:
+                shared_params_i[1] = parent_params_i[1][:]
+                shared_params_j[1] = parent_params_j[1][:]
+
+        # create offspring individuals
+        offspring_i = Individual(offspring_gene_i, 
+                                    parents[i].get_param_genes(), shared_params_i)
+        offspring_j = Individual(offspring_gene_j, 
+                                    parents[j].get_param_genes(), shared_params_j)
+        
+        return [offspring_i, offspring_j]
+
+    def crossover_param_single(self, parents, i, j):
+        parent_gene_i = parents[i].get_param_genes()
+        parent_gene_j = parents[j].get_param_genes()
+        
+        # select a random crossover point
+        point_index = parent_gene_j.index(sample(parent_gene_j, 1)[0])
+        offspring_gene_i = parent_gene_i[:point_index]
+        offspring_gene_i.extend(parent_gene_j[point_index:])
+        offspring_gene_j = parent_gene_j[:point_index]
+        offspring_gene_j.extend(parent_gene_i[point_index:])
+
+        shared_params_i = dict()
+        shared_params_j = dict()
+        if self.args.shared_params:
+            parent_params_i = parents[i].get_ind_params()
+            parent_params_j = parents[j].get_ind_params()
+            shared_params_i = copy.deepcopy(parent_params_i)
+            shared_params_j = copy.deepcopy(parent_params_j)
+
+        # create offspring individuals
+        offspring_i = Individual(parents[i].get_net_genes(), 
+                                    offspring_gene_i, shared_params_i)
+        offspring_j = Individual(parents[j].get_net_genes(), 
+                                    offspring_gene_j, shared_params_j)
+        
+        return [offspring_i, offspring_j]
+
+    def crossover(self, parents):
+        p_size = len(parents)
+        maximum = self.args.num_individuals / 2
+
+        # randomly choose crossover parent pairs
+        parent_pairs = []
+        while len(parent_pairs) < maximum:
+            indexes = sample(range(p_size), k=2)
+            pair = (indexes[0], indexes[1])
+            if indexes[0] > indexes[1]:
+                pair = (indexes[1], indexes[0])
+            if not pair in parent_pairs:
+                parent_pairs.append(pair)
+
+        offsprings = []
+        for i, j in parent_pairs:
+            if np.random.uniform(0, 1, 1) <= 0.5:
+                offsprings.extend(self.crossover_net_single(parents, i, j))
+            else:
+                offsprings.extend(self.crossover_param_single(parents, i, j))
+
+        return offsprings
+
     def mutation_net(self, offsprings):
         """perform mutation for all new offspring individuals"""
         for pair in offsprings:
@@ -254,6 +354,15 @@ class Population(object):
             if random_prob <= self.args.mutate_prob:
                 index, gene = self.hybrid_search_space.get_one_param_gene()
                 pair[1].mutation_net_gene(index, gene, 'param')
+    
+    def mutation(self, offsprings):
+        for offspring in offsprings:
+            random_prob = np.random.uniform(0, 1, 1)
+            if random_prob <= self.args.mutate_prob:
+                index, gene = self.hybrid_search_space.get_one_net_gene()
+                offspring.mutation_net_gene(index, gene, 'struct')
+                index, gene = self.hybrid_search_space.get_one_param_gene()
+                offspring.mutation_net_gene(index, gene, 'param')
                 
     def find_least_fittest(self, individuals):
         fitness = 10000
@@ -437,4 +546,36 @@ class Population(object):
             print(train_accs)           
             print(test_accs)           
             print('generation time: ', time.time() - start_time)        
+
+    def evolve_net_combined(self):
+        actions = []
+        params = []
+        train_accs = []
+        test_accs = []
         
+        # initialize population
+        self.init_population()
+        # calculate fitness for population
+        self.cal_fitness()
+        
+        for j in range(self.args.num_generations):
+            start_time = time.time()
+            # GNN hyper parameter evolution
+            print('===================GNN combined evolution====================')
+            parents = self.parent_selection()
+            offsprings = self.crossover(parents)
+            self.mutation(offsprings)
+            survivors = self.cal_fitness(offsprings)
+            self.update_population_struct(survivors)
+
+            best_individual = self.print_models(j)
+            actions.append(best_individual.get_net_genes())
+            params.append(best_individual.get_param_genes())
+            train_accs.append(best_individual.get_fitness())
+            test_accs.append(best_individual.get_test_acc())
+        
+            print(actions)           
+            print(params)           
+            print(train_accs)           
+            print(test_accs)           
+            print('generation time: ', time.time() - start_time)      

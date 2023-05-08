@@ -15,19 +15,14 @@ def main(args):
     if args.cuda:
         torch.cuda.set_device(args.gpu)
         utils.set_random_seed(args.random_seed)
-
-    utils.makedirs(args.dataset)  
     
     begin_time = time.time()
     pop = Population(args)
-    pop.evolve_net()
+    if args.combined_evolution:
+        pop.evolve_net_combined()
+    else:
+        pop.evolve_net()
     print('entire experiment time: %.2f min' %((time.time() - begin_time)/60))
-
-#     # run on single model
-#     num_epochs = 200
-#     actions = ['gcn', 'mean', 'softplus', 16, 8, 'gcn', 'max', 'tanh', 16, 6] 
-#     pop.single_model_run(num_epochs, actions)
-    
     
 if __name__ == "__main__":
     args = configs.build_args('GeneticGNN')
