@@ -109,6 +109,11 @@ class GNNModelManager(object):
         min_train_loss = float("inf")
         model_val_acc = 0
         model_test_acc = 0
+        
+        if self.args.half_epochs and sum(model.loaded)==self.args.num_gnn_layers:
+            epochs = int(epochs / 2)
+            print('half epochs, epochs={}'.format(epochs))
+        
 #         print("Number of train datas:", data.train_mask.sum())
         for epoch in range(1, epochs + 1):
             

@@ -20,6 +20,7 @@ class GraphNet(torch.nn.Module):
         self.residual = residual   
         self.batch_normal = batch_normal
         self.shared_params = shared_params
+        self.loaded = [False]*layer_nums
         
         # layer module
         self.build_model(actions, batch_normal, drop_outs, num_feat, num_label, state_num)
@@ -74,6 +75,7 @@ class GraphNet(torch.nn.Module):
                 # load parameters from parents
                 if self.shared_params!={} and (i in self.shared_params) and key==self.shared_params[i][0]:
                     print('load shared params: %s' % key)
+                    self.loaded[i] = True
                     if self.batch_normal:
                         bns = self.shared_params[i][1][0]
                     layers = self.shared_params[i][1][1]
