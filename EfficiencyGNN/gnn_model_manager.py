@@ -7,6 +7,7 @@ import torch_geometric.transforms as T
 from torch_geometric.datasets import Planetoid
 from gnn import GraphNet
 import gc
+from tensor_utils import count_parameters
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -87,7 +88,7 @@ class GNNModelManager(object):
                                      weight_decay=weight_decay)
         
         # run model to get accuracy
-        model, val_acc, test_acc = self.run_model(gnn_model, 
+        model, val_acc, test_acc, times = self.run_model(gnn_model, 
                                         optimizer, 
                                         self.loss_fn, 
                                         self.data, 
@@ -95,7 +96,7 @@ class GNNModelManager(object):
                                         return_best=True,
                                         show_info=False)
 
-        return val_acc, test_acc, gnn_model.shared_params
+        return val_acc, test_acc, gnn_model.shared_params, count_parameters(model), times
         
     def run_model(self, model, optimizer, loss_fn, data, epochs, early_stop=5, 
                   return_best=False, cuda=True, need_early_stop=False, show_info=False):
@@ -116,11 +117,12 @@ class GNNModelManager(object):
         
 #         print("Number of train datas:", data.train_mask.sum())
         for epoch in range(1, epochs + 1):
-            
-            model.train()
 #             print(data.edge_index.shape, data.x.shape, data.y.shape)
             data.x, data.y, data.edge_index = data.x.to(self.device), data.y.to(self.device), data.edge_index.to(self.device)
             data.train_mask, data.val_mask, data.test_mask = data.train_mask.to(self.device), data.val_mask.to(self.device), data.test_mask.to(self.device)
+            if epoch == 1:
+                t0 = time.time()
+            model.train()
             logits = model(data.x, data.edge_index)
             logits = F.log_softmax(logits, 1)
             
@@ -129,11 +131,17 @@ class GNNModelManager(object):
             loss.backward()
             optimizer.step()
             train_loss = loss.item()
+            if epoch == 1:
+                train_time = time.time() - t0
 
             # evaluate
+            if epoch == epochs:
+                t0 = time.time()
             model.eval()
             logits = model(data.x, data.edge_index)
             logits = F.log_softmax(logits, 1)
+            if epoch == epochs:
+                inference_time = time.time() - t0
             
             train_acc = evaluate(logits, data.y, data.train_mask)
             val_acc = evaluate(logits, data.y, data.val_mask)
@@ -159,6 +167,6 @@ class GNNModelManager(object):
 
         print("val_score:{:.4f}, test_score:{:.4f}, consumed_time:{:.2f}".format(model_val_acc, model_test_acc, time.time() - begin_time), '\n')
         if return_best:
-            return model, best_performance, best_test
+            return model, best_performance, best_test, [train_time, inference_time]
         else:
-            return model, model_val_acc, model_test_acc
+            return model, model_val_acc, model_test_acc, [train_time, inference_time]

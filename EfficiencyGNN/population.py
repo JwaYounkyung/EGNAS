@@ -454,11 +454,7 @@ class Population(object):
                 return False
         return True
 
-    def combine_population(self, param_genes):
-        for elem in self.param_individuals:
-            elem.param_genes
 
-            
     def update_population_param(self, survivors):
         """update current population with new offsprings"""
         for elem in survivors:
@@ -471,7 +467,8 @@ class Population(object):
 
     
     def print_models(self, iter):
-        
+        val_accs, test_accs = [], []
+        num_params, times = [], []
         print('===begin, current population ({} in {} generations)===='.format(
                                     (iter+1), self.args.num_generations))
         
@@ -479,6 +476,10 @@ class Population(object):
         for elem_index, elem in enumerate(self.struct_individuals):
             if best_individual.get_test_acc() < elem.get_test_acc():
                 best_individual = elem
+            val_accs.append(elem.get_fitness())
+            test_accs.append(elem.get_test_acc())
+            num_params.append(elem.num_params)
+            times.append(elem.times)
             print('struct space: {}, param space: {}, validate_acc={}, test_acc={}'.format(
                                 elem.get_net_genes(), 
                                 elem.get_param_genes(),
@@ -493,7 +494,7 @@ class Population(object):
            
         print('====end====\n')
         
-        return best_individual
+        return best_individual, val_accs, test_accs, num_params, times
     
                     
     def evolve_net(self):
@@ -504,8 +505,9 @@ class Population(object):
         
         actions = []
         params = []
-        train_accs = []
-        test_accs = []
+        val_accs, test_accs = [], []
+        total_val_accs, total_test_accs = [], []
+        total_num_params, total_times = [], []
         
         for j in range(self.args.num_generations):
             start_time = time.time()
@@ -534,24 +536,54 @@ class Population(object):
             struct_survivors = self.cal_fitness_offspring(struct_offsprings) # calculate fitness for offsprings
             self.update_population_struct(struct_survivors) # update the population 
             
+            best_individual, vals, tests, trainable_params, times = self.print_models(j)
             
-            best_individual = self.print_models(j)
+            # print best individual
             actions.append(best_individual.get_net_genes())
             params.append(best_individual.get_param_genes())
-            train_accs.append(best_individual.get_fitness())
+            val_accs.append(best_individual.get_fitness())
             test_accs.append(best_individual.get_test_acc())
+
+            # print everything
+            total_val_accs.extend(vals)
+            total_test_accs.extend(tests)
+            total_num_params.extend(trainable_params)
+            total_times.extend(times)
         
             print(actions)           
             print(params)           
-            print(train_accs)           
+            print(val_accs)           
             print(test_accs)           
-            print('generation time: ', time.time() - start_time)        
+            print('generation time: ', time.time() - start_time)   
+
+        print('total_val_accs: ', total_val_accs, len(total_val_accs))
+        print('total_test_accs: ', total_test_accs, len(total_test_accs))
+        print('total_num_params: ', total_num_params, len(total_num_params))
+        print('total_times: ', total_times, len(total_times))
+        
+        argmax = np.argmax(total_test_accs)
+        print('val %.3f test %.3f num_params %d training time %.3f inference time %.3f (%d)' % (total_val_accs[argmax], total_test_accs[argmax], total_num_params[argmax], total_times[argmax][0], total_times[argmax][1], argmax))
+
+        argmax = np.argmax(total_val_accs)
+        print('val %.3f test %.3f num_params %d training time %.3f inference time %.3f (%d)' % (total_val_accs[argmax], total_test_accs[argmax], total_num_params[argmax], total_times[argmax][0], total_times[argmax][1], argmax))
+
+        # top 5 validataion model's test accuracy mean and std
+        top5 = np.argsort(total_val_accs)[-5:]
+        print('top 5 validation model\'s test accuracy mean and std: ', np.mean(np.array(total_test_accs)[top5]), np.std(np.array(total_test_accs)[top5]))
+        print('trainable params mean and times mean: ', np.mean(np.array(total_num_params)[top5]), np.mean(np.array(total_times)[top5][0]), np.mean(np.array(total_times)[top5][1]))
+
+        # top 5 test model's test accuracy mean and std
+        top5 = np.argsort(total_test_accs)[-5:]
+        print('top 5 test model\'s test accuracy mean and std: ', np.mean(np.array(total_test_accs)[top5]), np.std(np.array(total_test_accs)[top5]))
+        print('trainable params mean and times mean: ', np.mean(np.array(total_num_params)[top5]), np.mean(np.array(total_times)[top5][0]), np.mean(np.array(total_times)[top5][1]))
+
 
     def evolve_net_combined(self):
         actions = []
         params = []
-        train_accs = []
-        test_accs = []
+        val_accs, test_accs = [], []
+        total_val_accs, total_test_accs = [], []
+        total_num_params, total_times = [], []
         
         # initialize population
         self.init_population()
@@ -568,14 +600,44 @@ class Population(object):
             survivors = self.cal_fitness(offsprings)
             self.update_population_struct(survivors)
 
-            best_individual = self.print_models(j)
+            best_individual, vals, tests, trainable_params, times = self.print_models(j)
+            
+            # print best individual
             actions.append(best_individual.get_net_genes())
             params.append(best_individual.get_param_genes())
-            train_accs.append(best_individual.get_fitness())
+            val_accs.append(best_individual.get_fitness())
             test_accs.append(best_individual.get_test_acc())
+
+            # print everything
+            total_val_accs.extend(vals)
+            total_test_accs.extend(tests)
+            total_num_params.extend(trainable_params)
+            total_times.extend(times)
         
             print(actions)           
             print(params)           
-            print(train_accs)           
+            print(val_accs)           
             print(test_accs)           
-            print('generation time: ', time.time() - start_time)      
+            print('generation time: ', time.time() - start_time)   
+
+        print('total_val_accs: ', total_val_accs, len(total_val_accs))
+        print('total_test_accs: ', total_test_accs, len(total_test_accs))
+        print('total_num_params: ', total_num_params, len(total_num_params))
+        print('total_times: ', total_times, len(total_times))
+        
+        argmax = np.argmax(total_test_accs)
+        print('val %.3f test %.3f num_params %d training time %.3f inference time %.3f (%d)' % (total_val_accs[argmax], total_test_accs[argmax], total_num_params[argmax], total_times[argmax][0], total_times[argmax][1], argmax))
+
+        argmax = np.argmax(total_val_accs)
+        print('val %.3f test %.3f num_params %d training time %.3f inference time %.3f (%d)' % (total_val_accs[argmax], total_test_accs[argmax], total_num_params[argmax], total_times[argmax][0], total_times[argmax][1], argmax))
+
+        # top 5 validataion model's test accuracy mean and std
+        top5 = np.argsort(total_val_accs)[-5:]
+        print('top 5 validation model\'s test accuracy mean and std: ', np.mean(np.array(total_test_accs)[top5]), np.std(np.array(total_test_accs)[top5]))
+        print('trainable params mean and times mean: ', np.mean(np.array(total_num_params)[top5]), np.mean(np.array(total_times)[top5][0]), np.mean(np.array(total_times)[top5][1]))
+
+        # top 5 test model's test accuracy mean and std
+        top5 = np.argsort(total_test_accs)[-5:]
+        print('top 5 test model\'s test accuracy mean and std: ', np.mean(np.array(total_test_accs)[top5]), np.std(np.array(total_test_accs)[top5]))
+        print('trainable params mean and times mean: ', np.mean(np.array(total_num_params)[top5]), np.mean(np.array(total_times)[top5][0]), np.mean(np.array(total_times)[top5][1]))
+

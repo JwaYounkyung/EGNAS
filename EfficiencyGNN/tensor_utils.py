@@ -12,15 +12,19 @@ from torch.autograd import Variable
 import random
 
 def set_random_seed(seed_num=1):
-	random.seed(seed_num)
-	np.random.seed(seed_num)
-	torch.manual_seed(seed_num)
-	torch.cuda.manual_seed(seed_num)
-	torch.cuda.manual_seed_all(seed_num)
-	torch.backends.cudnn.deterministic = True # True 연산 처리 속도가 감소될 수 있음
-	torch.backends.cudnn.benchmark = False
+    random.seed(seed_num)
+    np.random.seed(seed_num)
+    torch.manual_seed(seed_num)
+    torch.cuda.manual_seed(seed_num)
+    torch.cuda.manual_seed_all(seed_num)
+    torch.backends.cudnn.deterministic = True # True could reduce performance
+    torch.backends.cudnn.benchmark = False
+    # torch.use_deterministic_algorithms(True, warn_only=True)
+    torch.set_num_threads(60)
 
-
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+    
 class keydefaultdict(defaultdict):
     def __missing__(self, key):
         if self.default_factory is None:

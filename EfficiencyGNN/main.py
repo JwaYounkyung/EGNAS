@@ -7,6 +7,7 @@ from population import Population
 import os
 import time
 #os.environ['KMP_DUPLICATE_LIB_OK']='True'
+os.environ["CUBLAS_WORKSPACE_CONFIG"]=":4096:2"
 
 def main(args):
     if args.cuda and not torch.cuda.is_available():  # cuda is not available

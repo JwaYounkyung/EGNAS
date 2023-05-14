@@ -7,6 +7,8 @@ class Individual(object):
         self.net_genes = net_genes
         self.param_genes = param_genes
         self.ind_params = copy.deepcopy(ind_params)
+        self.num_params = None
+        self.times = None
         
     def get_net_genes(self):
         return self.net_genes
@@ -19,10 +21,12 @@ class Individual(object):
     
     def cal_fitness(self, gnn_manager):
         # run gnn to get the classification accuracy as fitness
-        val_acc, test_acc, ind_params = gnn_manager.train(self.net_genes, self.param_genes, self.ind_params)
+        val_acc, test_acc, ind_params, num_params, times = gnn_manager.train(self.net_genes, self.param_genes, self.ind_params)
         self.fitness = val_acc
         self.test_acc = test_acc
         self.ind_params = ind_params
+        self.num_params = num_params
+        self.times = times
         
     def get_fitness(self):
         return self.fitness
