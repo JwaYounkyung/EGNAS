@@ -93,6 +93,7 @@ class GNNModelManager(object):
                                         self.loss_fn, 
                                         self.data, 
                                         self.args.epochs,
+                                        early_stop=self.args.early_stopping,
                                         return_best=True,
                                         show_info=False)
 
@@ -110,6 +111,7 @@ class GNNModelManager(object):
         min_train_loss = float("inf")
         model_val_acc = 0
         model_test_acc = 0
+        counter = 0 # early stop counter
         
         if self.args.half_epochs and sum(model.loaded)==self.args.num_gnn_layers:
             epochs = int(epochs / 2)
@@ -135,12 +137,12 @@ class GNNModelManager(object):
                 train_time = time.time() - t0
 
             # evaluate
-            if epoch == epochs:
+            if epoch == 1:
                 t0 = time.time()
             model.eval()
             logits = model(data.x, data.edge_index)
             logits = F.log_softmax(logits, 1)
-            if epoch == epochs:
+            if epoch == 1:
                 inference_time = time.time() - t0
             
             train_acc = evaluate(logits, data.y, data.train_mask)
@@ -154,11 +156,14 @@ class GNNModelManager(object):
                 min_train_loss = train_loss
                 model_val_acc = val_acc
                 model_test_acc = test_acc
-                # if test_acc > best_performance:
-                #     best_performance = test_acc
-                if val_acc >= best_performance:
+                counter = 0
+                if val_acc > best_performance:
                     best_performance = val_acc
                     best_test = test_acc
+            else:
+                counter += 1
+                if early_stop>0 and counter==early_stop:
+                    break
             if show_info:
                 time_used = time.time() - begin_time
                 print(

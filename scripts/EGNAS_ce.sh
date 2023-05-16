@@ -1,9 +1,10 @@
 #!/bin/sh
 cd "EfficiencyGNN/" 
 
-exp_name="EfficiencyGNN_CEtrial1_mutation0.2"
+exp_name="EGNAS_ce_Cora"
 
 python -m main \
+    --dataset="cora" \
     --num_individuals=20 \
     --epochs=200 \
     --shared_params \
@@ -14,5 +15,6 @@ python -m main \
     --num_parents_param=4 \
     --num_offsprings_param=2 \
     --mutate_prob=0.2 \
-    --gpu=1 \
+    --early_stopping=10 \
+    --gpu=2 \
     2>&1 | tee ${exp_name}.log

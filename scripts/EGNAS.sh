@@ -1,10 +1,10 @@
 #!/bin/sh
 cd "EfficiencyGNN/" 
 
-exp_name="EfficiencyGNN_woHP_PStrial5"
+exp_name="EGNAS_Cora"
 
 python -m main \
-    --dataset='CiteSeer' \
+    --dataset="cora" \
     --num_individuals=20 \
     --epochs=200 \
     --shared_params \
@@ -13,5 +13,6 @@ python -m main \
     --num_generations_param=0 \
     --num_parents_param=0 \
     --num_offsprings_param=0 \
+    --early_stopping=10 \
     --gpu=1 \
     2>&1 | tee ${exp_name}.log

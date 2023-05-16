@@ -61,6 +61,7 @@ def register_default_args(parser):
                         help="whether to share parameters")
     parser.add_argument("--half_epochs", action='store_true', default=False)
     parser.add_argument("--combined_evolution", action='store_true', default=False)
+    parser.add_argument('--early_stopping', type=int, default=10)
 #     parser.add_argument('--save_epoch', type=int, default=2)
 #     parser.add_argument('--max_save_num', type=int, default=5)
 #     parser.add_argument("--residual", action="store_false",

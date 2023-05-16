@@ -474,7 +474,7 @@ class Population(object):
         
         best_individual = self.struct_individuals[0]
         for elem_index, elem in enumerate(self.struct_individuals):
-            if best_individual.get_test_acc() < elem.get_test_acc():
+            if best_individual.get_fitness() < elem.get_fitness():
                 best_individual = elem
             val_accs.append(elem.get_fitness())
             test_accs.append(elem.get_test_acc())
@@ -561,22 +561,17 @@ class Population(object):
         print('total_num_params: ', total_num_params, len(total_num_params))
         print('total_times: ', total_times, len(total_times))
         
-        argmax = np.argmax(total_test_accs)
-        print('val %.3f test %.3f num_params %d training time %.3f inference time %.3f (%d)' % (total_val_accs[argmax], total_test_accs[argmax], total_num_params[argmax], total_times[argmax][0], total_times[argmax][1], argmax))
-
-        argmax = np.argmax(total_val_accs)
-        print('val %.3f test %.3f num_params %d training time %.3f inference time %.3f (%d)' % (total_val_accs[argmax], total_test_accs[argmax], total_num_params[argmax], total_times[argmax][0], total_times[argmax][1], argmax))
-
         # top 5 validataion model's test accuracy mean and std
         top5 = np.argsort(total_val_accs)[-5:]
-        print('top 5 validation model\'s test accuracy mean and std: ', np.mean(np.array(total_test_accs)[top5]), np.std(np.array(total_test_accs)[top5]))
-        print('trainable params mean and times mean: ', np.mean(np.array(total_num_params)[top5]), np.mean(np.array(total_times)[top5][0]), np.mean(np.array(total_times)[top5][1]))
+        print('top 5 validation model\'s test accuracy mean and std: %.2f %.2f' % (np.mean(np.array(total_test_accs)[top5])*100, np.std(np.array(total_test_accs)[top5])*100))
+        print('trainable params mean and times mean (ms): ', np.mean(np.array(total_num_params)[top5]), np.mean(np.array(total_times)[top5][:,0])*1000, np.mean(np.array(total_times)[top5][:,1])*1000)
 
-        # top 5 test model's test accuracy mean and std
-        top5 = np.argsort(total_test_accs)[-5:]
-        print('top 5 test model\'s test accuracy mean and std: ', np.mean(np.array(total_test_accs)[top5]), np.std(np.array(total_test_accs)[top5]))
-        print('trainable params mean and times mean: ', np.mean(np.array(total_num_params)[top5]), np.mean(np.array(total_times)[top5][0]), np.mean(np.array(total_times)[top5][1]))
-
+        # best test accuracy among top 5 validation models
+        print(total_test_accs[top5])
+        argmax = np.argmax(np.array(total_test_accs)[top5])
+        max_test_index = top5[argmax]
+        print('\nval %.2f test %.2f (%d)' % (total_val_accs[max_test_index]*100, total_test_accs[max_test_index]*100, max_test_index))
+        print('trainable params & times (ms): ', total_num_params[max_test_index], total_times[max_test_index][0]*1000, total_times[max_test_index][1]*1000)
 
     def evolve_net_combined(self):
         actions = []
@@ -625,19 +620,14 @@ class Population(object):
         print('total_num_params: ', total_num_params, len(total_num_params))
         print('total_times: ', total_times, len(total_times))
         
-        argmax = np.argmax(total_test_accs)
-        print('val %.3f test %.3f num_params %d training time %.3f inference time %.3f (%d)' % (total_val_accs[argmax], total_test_accs[argmax], total_num_params[argmax], total_times[argmax][0], total_times[argmax][1], argmax))
-
-        argmax = np.argmax(total_val_accs)
-        print('val %.3f test %.3f num_params %d training time %.3f inference time %.3f (%d)' % (total_val_accs[argmax], total_test_accs[argmax], total_num_params[argmax], total_times[argmax][0], total_times[argmax][1], argmax))
-
         # top 5 validataion model's test accuracy mean and std
         top5 = np.argsort(total_val_accs)[-5:]
-        print('top 5 validation model\'s test accuracy mean and std: ', np.mean(np.array(total_test_accs)[top5]), np.std(np.array(total_test_accs)[top5]))
-        print('trainable params mean and times mean: ', np.mean(np.array(total_num_params)[top5]), np.mean(np.array(total_times)[top5][0]), np.mean(np.array(total_times)[top5][1]))
+        print('top 5 validation model\'s test accuracy mean and std: %.2f %.2f' % (np.mean(np.array(total_test_accs)[top5])*100, np.std(np.array(total_test_accs)[top5])*100))
+        print('trainable params mean and times mean (ms): ', np.mean(np.array(total_num_params)[top5]), np.mean(np.array(total_times)[top5][:,0])*1000, np.mean(np.array(total_times)[top5][:,1])*1000)
 
-        # top 5 test model's test accuracy mean and std
-        top5 = np.argsort(total_test_accs)[-5:]
-        print('top 5 test model\'s test accuracy mean and std: ', np.mean(np.array(total_test_accs)[top5]), np.std(np.array(total_test_accs)[top5]))
-        print('trainable params mean and times mean: ', np.mean(np.array(total_num_params)[top5]), np.mean(np.array(total_times)[top5][0]), np.mean(np.array(total_times)[top5][1]))
-
+        # best test accuracy among top 5 validation models
+        print(total_test_accs[top5])
+        argmax = np.argmax(np.array(total_test_accs)[top5])
+        max_test_index = top5[argmax]
+        print('\nval %.2f test %.2f (%d)' % (total_val_accs[max_test_index]*100, total_test_accs[max_test_index]*100, max_test_index))
+        print('trainable params & times (ms): ', total_num_params[max_test_index], total_times[max_test_index][0]*1000, total_times[max_test_index][1]*1000)
