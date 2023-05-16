@@ -62,6 +62,8 @@ def register_default_args(parser):
     parser.add_argument("--half_epochs", action='store_true', default=False)
     parser.add_argument("--combined_evolution", action='store_true', default=False)
     parser.add_argument('--early_stopping', type=int, default=10)
+    parser.add_argument('--param_initial_rate', type=float, default=0,
+                        help='0 means all hyperparameters are initialized randomly')
 #     parser.add_argument('--save_epoch', type=int, default=2)
 #     parser.add_argument('--max_save_num', type=int, default=5)
 #     parser.add_argument("--residual", action="store_false",

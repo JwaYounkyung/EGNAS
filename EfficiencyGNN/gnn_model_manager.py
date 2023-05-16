@@ -7,7 +7,7 @@ import torch_geometric.transforms as T
 from torch_geometric.datasets import Planetoid
 from gnn import GraphNet
 import gc
-from tensor_utils import count_parameters
+from thop import profile
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -88,7 +88,7 @@ class GNNModelManager(object):
                                      weight_decay=weight_decay)
         
         # run model to get accuracy
-        model, val_acc, test_acc, times = self.run_model(gnn_model, 
+        model, val_acc, test_acc, flopparam, times = self.run_model(gnn_model, 
                                         optimizer, 
                                         self.loss_fn, 
                                         self.data, 
@@ -97,7 +97,7 @@ class GNNModelManager(object):
                                         return_best=True,
                                         show_info=False)
 
-        return val_acc, test_acc, gnn_model.shared_params, count_parameters(model), times
+        return val_acc, test_acc, gnn_model.shared_params, flopparam, times
         
     def run_model(self, model, optimizer, loss_fn, data, epochs, early_stop=5, 
                   return_best=False, cuda=True, need_early_stop=False, show_info=False):
@@ -144,6 +144,7 @@ class GNNModelManager(object):
             logits = F.log_softmax(logits, 1)
             if epoch == 1:
                 inference_time = time.time() - t0
+                flops, params = profile(model, inputs=(data.x, data.edge_index), verbose=False)
             
             train_acc = evaluate(logits, data.y, data.train_mask)
             val_acc = evaluate(logits, data.y, data.val_mask)
@@ -172,6 +173,6 @@ class GNNModelManager(object):
 
         print("val_score:{:.4f}, test_score:{:.4f}, consumed_time:{:.2f}".format(model_val_acc, model_test_acc, time.time() - begin_time), '\n')
         if return_best:
-            return model, best_performance, best_test, [train_time, inference_time]
+            return model, best_performance, best_test, [flops, params], [train_time, inference_time]
         else:
-            return model, model_val_acc, model_test_acc, [train_time, inference_time]
+            return model, model_val_acc, model_test_acc, [flops, params], [train_time, inference_time]

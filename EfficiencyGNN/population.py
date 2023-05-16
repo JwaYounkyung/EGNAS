@@ -25,14 +25,13 @@ class Population(object):
         
         # dataset statistics
         print(self.gnn_manager.data)
-        
+ 
     def init_population(self):
         
         struct_individuals = []
         
         for i in range(self.args.num_individuals):
             net_genes = self.hybrid_search_space.get_net_instance()
-#             param_genes = self.hybrid_search_space.get_param_instance()
             if self.args.num_gnn_layers == 2:
                 param_genes = [self.args.in_drop, self.args.in_drop, self.args.lr, self.args.weight_decay]
             elif self.args.num_gnn_layers == 3:
@@ -55,22 +54,30 @@ class Population(object):
         self.params_individuals = params_individuals
 
 
-#     def cal_superfitness(self, super_individual):
-#         best_fitness = -1
-#         average_fitness = 0
-#         for elem in super_individual:
-#             if best_fitness < elem.get_fitness():
-#                 best_fitness = elem.get_fitness()
-#             average_fitness += elem.get_fitness()
-#         
-#         average_fitness = average_fitness / self.args.num_individuals
-#         final_fitness = self.args.super_ratio * best_fitness + (1-self.args.super_ratio) * average_fitness
-#         
-#         return final_fitness
+    def init_combined_population(self):
+        
+        struct_individuals = []
+        threshold = self.args.num_individuals * self.args.param_initial_rate
+        
+        for i in range(self.args.num_individuals):
+            net_genes = self.hybrid_search_space.get_net_instance()
+            
+            # initialize the parameters
+            if i < threshold:
+                if self.args.num_gnn_layers == 2:
+                    param_genes = [self.args.in_drop, self.args.in_drop, self.args.lr, self.args.weight_decay]
+                elif self.args.num_gnn_layers == 3:
+                    param_genes = [self.args.in_drop, self.args.in_drop, self.args.in_drop, self.args.lr, self.args.weight_decay]
+            else:
+                param_genes = self.hybrid_search_space.get_param_instance()
+            
+            instance = Individual(net_genes, param_genes)
+            struct_individuals.append(instance)
+        
+        self.struct_individuals = struct_individuals
+
 
     def init_param_population(self, init_individuals):
-#         action = init_individuals.get_net_genes()
-#         param = init_individuals.get_param_genes()
         super_population = []
         
         init_pop = Super_Individual(self.args.num_individuals, self.args.super_ratio, init_individuals, self.params_individuals[0])
@@ -78,7 +85,6 @@ class Population(object):
         super_population.append(init_pop)
         for i in range(self.args.num_individuals_param-1):
             individuals = copy.deepcopy(init_individuals)
-#            param_genes = self.hybrid_search_space.get_param_instance()
             param_genes = self.params_individuals[i+1]
             for i in range(self.args.num_individuals): 
                 individuals[i].param_genes = param_genes
@@ -496,6 +502,19 @@ class Population(object):
         
         return best_individual, val_accs, test_accs, num_params, times
     
+    def print_results(self, total_val_accs, total_test_accs, total_num_params, total_times):
+        # top 5 validataion model's test accuracy mean and std
+        top5 = np.argsort(total_val_accs)[-5:]
+        print('\ntop 5 validation model\'s test accuracy mean and std: %.2f %.2f' % (np.mean(np.array(total_test_accs)[top5])*100, np.std(np.array(total_test_accs)[top5])*100))
+        print('FLOPs and Params (M) and times mean (ms): ', np.mean(np.array(total_num_params)[top5][:,0])*10**(-6), np.mean(np.array(total_num_params)[top5][:,1])*10**(-6), np.mean(np.array(total_times)[top5][:,0])*1000, np.mean(np.array(total_times)[top5][:,1])*1000)
+
+        # best test accuracy among top 5 validation models
+        print(np.array(total_test_accs)[top5])
+        argmax = np.argmax(np.array(total_test_accs)[top5])
+        max_test_index = top5[argmax]
+        print('best test accuracy among top 5 validation models : val %.2f test %.2f (%d)' % (total_val_accs[max_test_index]*100, total_test_accs[max_test_index]*100, max_test_index))
+        print('FLOPs and Params (M) and times (ms): ', total_num_params[max_test_index][0]*10**(-6), total_num_params[max_test_index][1]*10**(-6), total_times[max_test_index][0]*1000, total_times[max_test_index][1]*1000)
+
                     
     def evolve_net(self):
         # initialize population
@@ -561,17 +580,7 @@ class Population(object):
         print('total_num_params: ', total_num_params, len(total_num_params))
         print('total_times: ', total_times, len(total_times))
         
-        # top 5 validataion model's test accuracy mean and std
-        top5 = np.argsort(total_val_accs)[-5:]
-        print('top 5 validation model\'s test accuracy mean and std: %.2f %.2f' % (np.mean(np.array(total_test_accs)[top5])*100, np.std(np.array(total_test_accs)[top5])*100))
-        print('trainable params mean and times mean (ms): ', np.mean(np.array(total_num_params)[top5]), np.mean(np.array(total_times)[top5][:,0])*1000, np.mean(np.array(total_times)[top5][:,1])*1000)
-
-        # best test accuracy among top 5 validation models
-        print(total_test_accs[top5])
-        argmax = np.argmax(np.array(total_test_accs)[top5])
-        max_test_index = top5[argmax]
-        print('\nval %.2f test %.2f (%d)' % (total_val_accs[max_test_index]*100, total_test_accs[max_test_index]*100, max_test_index))
-        print('trainable params & times (ms): ', total_num_params[max_test_index], total_times[max_test_index][0]*1000, total_times[max_test_index][1]*1000)
+        self.print_results(total_val_accs, total_test_accs, total_num_params, total_times)
 
     def evolve_net_combined(self):
         actions = []
@@ -581,7 +590,7 @@ class Population(object):
         total_num_params, total_times = [], []
         
         # initialize population
-        self.init_population()
+        self.init_combined_population()
         # calculate fitness for population
         self.cal_fitness()
         
@@ -620,14 +629,4 @@ class Population(object):
         print('total_num_params: ', total_num_params, len(total_num_params))
         print('total_times: ', total_times, len(total_times))
         
-        # top 5 validataion model's test accuracy mean and std
-        top5 = np.argsort(total_val_accs)[-5:]
-        print('top 5 validation model\'s test accuracy mean and std: %.2f %.2f' % (np.mean(np.array(total_test_accs)[top5])*100, np.std(np.array(total_test_accs)[top5])*100))
-        print('trainable params mean and times mean (ms): ', np.mean(np.array(total_num_params)[top5]), np.mean(np.array(total_times)[top5][:,0])*1000, np.mean(np.array(total_times)[top5][:,1])*1000)
-
-        # best test accuracy among top 5 validation models
-        print(total_test_accs[top5])
-        argmax = np.argmax(np.array(total_test_accs)[top5])
-        max_test_index = top5[argmax]
-        print('\nval %.2f test %.2f (%d)' % (total_val_accs[max_test_index]*100, total_test_accs[max_test_index]*100, max_test_index))
-        print('trainable params & times (ms): ', total_num_params[max_test_index], total_times[max_test_index][0]*1000, total_times[max_test_index][1]*1000)
+        self.print_results(total_val_accs, total_test_accs, total_num_params, total_times)
