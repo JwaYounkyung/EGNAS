@@ -505,15 +505,16 @@ class Population(object):
     def print_results(self, total_val_accs, total_test_accs, total_num_params, total_times):
         # top 5 validataion model's test accuracy mean and std
         top5 = np.argsort(total_val_accs)[-5:]
-        print('\ntop 5 validation model\'s test accuracy mean and std: %.2f %.2f' % (np.mean(np.array(total_test_accs)[top5])*100, np.std(np.array(total_test_accs)[top5])*100))
-        print('FLOPs and Params (M) and times mean (ms): ', np.mean(np.array(total_num_params)[top5][:,0])*10**(-6), np.mean(np.array(total_num_params)[top5][:,1])*10**(-6), np.mean(np.array(total_times)[top5][:,0])*1000, np.mean(np.array(total_times)[top5][:,1])*1000)
+        print('\ntotal number of architecture evaluations: %d' % len(total_val_accs))
+        print('top 5 validation model\'s test accuracy mean and std: %.2f %.2f' % (np.mean(np.array(total_test_accs)[top5])*100, np.std(np.array(total_test_accs)[top5])*100))
+        print('Params (M) and times mean (ms): ', np.mean(np.array(total_num_params)[top5])*10**(-6), np.mean(np.array(total_times)[top5][:,0])*1000, np.mean(np.array(total_times)[top5][:,1])*1000)
 
         # best test accuracy among top 5 validation models
         print(np.array(total_test_accs)[top5])
         argmax = np.argmax(np.array(total_test_accs)[top5])
         max_test_index = top5[argmax]
         print('best test accuracy among top 5 validation models : val %.2f test %.2f (%d)' % (total_val_accs[max_test_index]*100, total_test_accs[max_test_index]*100, max_test_index))
-        print('FLOPs and Params (M) and times (ms): ', total_num_params[max_test_index][0]*10**(-6), total_num_params[max_test_index][1]*10**(-6), total_times[max_test_index][0]*1000, total_times[max_test_index][1]*1000)
+        print('Params (M) and times (ms): ', total_num_params[max_test_index]*10**(-6), total_times[max_test_index][0]*1000, total_times[max_test_index][1]*1000)
 
                     
     def evolve_net(self):
@@ -624,9 +625,9 @@ class Population(object):
             print(test_accs)           
             print('generation time: ', time.time() - start_time)   
 
-        print('total_val_accs: ', total_val_accs, len(total_val_accs))
-        print('total_test_accs: ', total_test_accs, len(total_test_accs))
-        print('total_num_params: ', total_num_params, len(total_num_params))
-        print('total_times: ', total_times, len(total_times))
+        print('total_val_accs:', total_val_accs)
+        print('total_test_accs:', total_test_accs)
+        print('total_num_params:', total_num_params)
+        print('total_times:', total_times)
         
         self.print_results(total_val_accs, total_test_accs, total_num_params, total_times)
