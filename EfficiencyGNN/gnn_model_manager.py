@@ -32,20 +32,15 @@ class GNNModelManager(object):
         dataset = Planetoid(path, dataset, split='public', transform=T.NormalizeFeatures())
         data = dataset[0]
         
-#         print(np.sum(np.array(data.val_mask), 0))
-        
-#         data.train_mask = torch.zeros(data.num_nodes, dtype=torch.uint8)
-#         data.train_mask[:-1000] = 1
-#         data.val_mask = torch.zeros(data.num_nodes, dtype=torch.uint8)
-#         data.val_mask[data.num_nodes - 1000: data.num_nodes - 500] = 1
-#         data.test_mask = torch.zeros(data.num_nodes, dtype=torch.uint8)
-#         data.test_mask[data.num_nodes - 500:] = 1
+        if self.args.supervised:
+            data.train_mask = torch.zeros(data.num_nodes, dtype=torch.uint8)
+            data.train_mask[:-1000] = 1
+            data.val_mask = torch.zeros(data.num_nodes, dtype=torch.uint8)
+            data.val_mask[-1000: -500] = 1
+            data.test_mask = torch.zeros(data.num_nodes, dtype=torch.uint8)
+            data.test_mask[-500:] = 1
         
         self.data = data
-        
-        
-#         print(data.edge_index)
-#         print(data.edge_index.shape)
         
         self.args.num_class = data.y.max().item() + 1
         self.args.in_feats = self.data.num_features
@@ -163,6 +158,7 @@ class GNNModelManager(object):
             else:
                 counter += 1
                 if early_stop>0 and counter==early_stop:
+                    print('early stop at epoch {}'.format(epoch))
                     break
             if show_info:
                 time_used = time.time() - begin_time
