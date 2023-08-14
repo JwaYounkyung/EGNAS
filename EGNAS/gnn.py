@@ -71,7 +71,7 @@ class GraphNet(torch.nn.Module):
                     else:
                         fcs = torch.nn.Linear(in_channels, out_channels)
             else:
-                key = "%d_%d_%d_%d_%s_%s_%s" % (i, in_channels, out_channels, head_num, concat, attention_type, aggregator_type) # GraphNAS
+                key = "%d_%d_%d_%d_%s_%s_%s" % (i, in_channels, out_channels, head_num, concat, attention_type, aggregator_type)
                 # load parameters from parents
                 if self.shared_params!={} and (i in self.shared_params) and key==self.shared_params[i][0]:
                     print('load shared params: %s' % key)

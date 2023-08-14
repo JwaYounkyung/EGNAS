@@ -1,10 +1,10 @@
 #!/bin/sh
-cd "EfficiencyGNN/" 
+cd "EGNAS/" 
 
-exp_name="EGNAS_ce"
+exp_name="EGNAS_Citeseer_noearly"
 
 python -m main \
-    --dataset="cora" \
+    --dataset="Citeseer" \
     --num_individuals=20 \
     --epochs=200 \
     --shared_params \
@@ -15,7 +15,7 @@ python -m main \
     --num_parents_param=4 \
     --num_offsprings_param=2 \
     --mutate_prob=0.2 \
-    --early_stopping=10 \
+    --early_stopping=0 \
     --param_initial_rate=0 \
-    --gpu=2 \
+    --gpu=0 \
     2>&1 | tee ${exp_name}.log
